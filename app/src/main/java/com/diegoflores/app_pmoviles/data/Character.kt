@@ -1,4 +1,4 @@
-package com.diegoflores.app_pmoviles
+package com.diegoflores.app_pmoviles.data
 
 data class Character(
     val id: Int,

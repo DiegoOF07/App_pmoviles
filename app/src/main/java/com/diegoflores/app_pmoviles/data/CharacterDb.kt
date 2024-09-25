@@ -1,4 +1,4 @@
-package com.diegoflores.app_pmoviles
+package com.diegoflores.app_pmoviles.data
 
 class CharacterDb {
     private val characters: List<Character> = listOf(

@@ -1,4 +1,4 @@
-package com.diegoflores.app_pmoviles.lab8.details
+package com.diegoflores.app_pmoviles.views.character.details
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder

@@ -1,4 +1,4 @@
-package com.diegoflores.app_pmoviles.lab8.details
+package com.diegoflores.app_pmoviles.views.character.details
 
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.background
@@ -31,7 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.diegoflores.app_pmoviles.CharacterDb
+import com.diegoflores.app_pmoviles.data.CharacterDb
 import com.diegoflores.app_pmoviles.ui.theme.App_pmovilesTheme
 
 @Composable
@@ -139,8 +139,8 @@ private fun DetailsScreen(
 
 @Preview
 @Composable
-private fun PreviewCharacterProfileScreen(){
-    App_pmovilesTheme (darkTheme = true){
+private fun PreviewDetailsScreen(){
+    App_pmovilesTheme{
         Surface {
             DetailsScreen(id = 1, onNavigateBack = {})
         }
