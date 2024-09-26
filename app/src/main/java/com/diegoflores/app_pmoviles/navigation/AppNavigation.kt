@@ -16,10 +16,16 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -42,8 +48,11 @@ import com.diegoflores.app_pmoviles.views.profile.toProfileScreen
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier){
     val navController = rememberNavController()
+    var navBarState by rememberSaveable {
+        mutableStateOf(false)
+    }
     Scaffold(bottomBar = {
-        MainBottomAppBar(navController)
+        if(navBarState) MainBottomAppBar(navController)
     }){innerPadding ->
         NavHost(
             navController = navController,
@@ -56,6 +65,7 @@ fun AppNavigation(modifier: Modifier = Modifier){
                 navController.toCharacterGraph(
                     destination = CharacterGraphNavDestination,
                 )
+                navBarState = true
             })
 
             characterGraph(navController = navController)
@@ -69,6 +79,7 @@ fun AppNavigation(modifier: Modifier = Modifier){
                             popUpTo<LoginDestination>() {inclusive = true}
                         }
                     )
+                navBarState = false
                 }
             )
 
@@ -80,34 +91,28 @@ fun AppNavigation(modifier: Modifier = Modifier){
 }
 
 @Composable
-fun MainBottomAppBar(navController: NavHostController) {
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .background(MaterialTheme.colorScheme.primary)
-        .padding(bottom = 30.dp, top = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceAround){
-        Column(modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(onClick = {navController.toCharacterGraph(
+fun MainBottomAppBar(navController: NavHostController){
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.primary
+    ) {
+        NavigationBarItem(
+            selected = false,
+            onClick = {navController.toCharacterGraph(
                 destination = CharacterGraphNavDestination
-            )}) {
+            )},
+            icon = {
                 Icon(painter = painterResource(id = R.drawable.ic_people),
                     contentDescription = "Characters",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .size(48.dp))
-            }
-            Text(text = "Characters",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimary)
-        }
-        Column(modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(onClick = {navController.toLocationGraph(
+            })
+        NavigationBarItem(
+            selected = false,
+            onClick = {navController.toLocationGraph(
                 destination = LocationGraphNavDestination
-            )}) {
+            )},
+            icon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_world),
                     contentDescription = "Locations",
@@ -115,32 +120,21 @@ fun MainBottomAppBar(navController: NavHostController) {
                     modifier = Modifier
                         .size(48.dp)
                 )
-            }
-            Text(text = "Locations",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimary)
-        }
-        Column(modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(onClick = {navController.toProfileScreen(
+            })
+        NavigationBarItem(
+            selected = false,
+            onClick = {navController.toProfileScreen(
                 destination = ProfileDestination
-            )}) {
+            )},
+            icon = {
                 Icon(
                     Icons.Filled.Person,
-                    contentDescription = "Localized description",
+                    contentDescription = "Profile",
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .size(48.dp)
                 )
-            }
-            Text(text = "Profile",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-
+            })
     }
 }
 
