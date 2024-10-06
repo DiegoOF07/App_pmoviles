@@ -1,25 +1,20 @@
 package com.diegoflores.app_pmoviles.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,31 +23,58 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
-import com.diegoflores.app_pmoviles.R
-import com.diegoflores.app_pmoviles.ui.theme.App_pmovilesTheme
 import com.diegoflores.app_pmoviles.views.character.login.LoginDestination
 import com.diegoflores.app_pmoviles.views.character.login.loginScreen
 import com.diegoflores.app_pmoviles.views.character.login.toLogin
-import com.diegoflores.app_pmoviles.views.profile.ProfileDestination
 import com.diegoflores.app_pmoviles.views.profile.profileScreen
-import com.diegoflores.app_pmoviles.views.profile.toProfileScreen
-
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier){
     val navController = rememberNavController()
     var navBarState by rememberSaveable {
-        mutableStateOf(false)
+        mutableStateOf(true)
+    }
+    val currentDestination = navController.currentBackStackEntryAsState().value?.destination
+    navBarState = if (currentDestination != null) {
+        topLevelDestinations.any { destination ->
+            currentDestination.hasRoute(destination)
+        }
+    } else {
+        false
     }
     Scaffold(bottomBar = {
-        if(navBarState) MainBottomAppBar(navController)
+        AnimatedVisibility(
+            visible = navBarState,
+            enter =
+                slideInVertically(initialOffsetY = { it })+
+                        expandVertically(expandFrom = Alignment.Top) +
+                        fadeIn(initialAlpha = 0.3f),
+            exit = slideOutVertically(targetOffsetY = { it })+
+                    shrinkVertically() +
+                    fadeOut()
+        ){
+            BottomNavigationBar(
+                checkItemSelected = {destination ->
+                    currentDestination?.hierarchy?.any{
+                        it.hasRoute(destination::class)
+                    }?:false
+                },
+                onNavigationItem = {destination->
+                    navController.navigate(destination){
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                })
+        }
     }){innerPadding ->
         NavHost(
             navController = navController,
@@ -65,7 +87,6 @@ fun AppNavigation(modifier: Modifier = Modifier){
                 navController.toCharacterGraph(
                     destination = CharacterGraphNavDestination,
                 )
-                navBarState = true
             })
 
             characterGraph(navController = navController)
@@ -76,10 +97,9 @@ fun AppNavigation(modifier: Modifier = Modifier){
                     navController.toLogin(
                         destination = LoginDestination,
                         navOptions = navOptions {
-                            popUpTo<LoginDestination>() {inclusive = true}
+                            popUpTo(0)
                         }
                     )
-                navBarState = false
                 }
             )
 
@@ -91,59 +111,45 @@ fun AppNavigation(modifier: Modifier = Modifier){
 }
 
 @Composable
-fun MainBottomAppBar(navController: NavHostController){
+fun BottomNavigationBar(
+    checkItemSelected: (Any) -> Boolean,
+    onNavigationItem: (Any) -> Unit
+){
+    val navItems = getNavItems()
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.primary
     ) {
-        NavigationBarItem(
-            selected = false,
-            onClick = {navController.toCharacterGraph(
-                destination = CharacterGraphNavDestination
-            )},
-            icon = {
-                Icon(painter = painterResource(id = R.drawable.ic_people),
-                    contentDescription = "Characters",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .size(48.dp))
-            })
-        NavigationBarItem(
-            selected = false,
-            onClick = {navController.toLocationGraph(
-                destination = LocationGraphNavDestination
-            )},
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_world),
-                    contentDescription = "Locations",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .size(48.dp)
+        navItems.forEach { navItem ->
+            val isSelected = checkItemSelected(navItem.destination)
+            NavigationBarItem(
+                selected = isSelected,
+                label = { Text(navItem.title, color = MaterialTheme.colorScheme.onPrimary) },
+                onClick = {
+                    onNavigationItem(navItem.destination)
+                },
+                icon = {
+                    Icon(
+                        imageVector = if (isSelected) {
+                            navItem.selectedIcon
+                        } else navItem.unselectedIcon,
+                        contentDescription = navItem.title,
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
+                colors = NavigationBarItemColors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedIndicatorColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledIconColor = MaterialTheme.colorScheme.onSecondary,
+                    disabledTextColor = MaterialTheme.colorScheme.onSecondary
                 )
-            })
-        NavigationBarItem(
-            selected = false,
-            onClick = {navController.toProfileScreen(
-                destination = ProfileDestination
-            )},
-            icon = {
-                Icon(
-                    Icons.Filled.Person,
-                    contentDescription = "Profile",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .size(48.dp)
-                )
-            })
-    }
-}
-
-@Preview
-@Composable
-private fun PreviewMainBottomAppBar(){
-    App_pmovilesTheme{
-        Surface() {
-            MainBottomAppBar(navController = rememberNavController())
+            )
         }
     }
 }
+
+
+
+
