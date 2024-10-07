@@ -26,10 +26,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.diegoflores.app_pmoviles.data.CharacterDb
 import com.diegoflores.app_pmoviles.data.Character
@@ -37,21 +47,38 @@ import com.diegoflores.app_pmoviles.ui.theme.App_pmovilesTheme
 
 @Composable
 fun CharactersRoute(
+    viewModel: CharactersViewModel = viewModel(),
     onNavigateCharacter: (Int) -> Unit,
 ){
+    val state by viewModel.state.collectAsStateWithLifecycle()
     CharactersScreen (
+        state = state,
+        onGenerateError = {viewModel.simulateError()},
+        onReloadData = {viewModel.getCharactersData()},
         onNavigateCharacter = onNavigateCharacter,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 private fun CharactersScreen(
+    state: CharactersScreenState,
+    onGenerateError: () -> Unit,
+    onReloadData: ()->Unit,
     onNavigateCharacter: (Int) -> Unit,
 ){
-    val characterDb = CharacterDb()
-    val characters = characterDb.getAllCharacters()
+    when{
+        state.isLoading-> LoadingScreen(onGenerateError)
+        state.hasError-> ErrorScreen(onReloadData)
+        state.data.isNotEmpty() -> CharacterListContent(characters = state.data, onNavigateCharacter = onNavigateCharacter)
+    }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CharacterListContent(
+    characters: List<Character>,
+    onNavigateCharacter: (Int) -> Unit){
     Column (modifier = Modifier.fillMaxSize()){
         TopAppBar(
             title = {
@@ -107,12 +134,50 @@ fun CharacterItem(character: Character, onPressed: () -> Unit) {
     }
 }
 
+@Composable
+private fun LoadingScreen(onGenerateError: ()->Unit){
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .clickable(onClick = onGenerateError),
+        contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorScreen(onReloadData: () -> Unit){
+    Box(modifier = Modifier
+        .fillMaxSize(),
+        contentAlignment = Alignment.Center){
+        Column(modifier = Modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Icon(Icons.Outlined.Info,
+                contentDescription =null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp))
+            Text(text = "Error al obtener el listado de personajes\nIntenta de nuevo",
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+                )
+            OutlinedButton(onClick = onReloadData) {
+                Text(text = "Reintentar", color = MaterialTheme.colorScheme.error)
+            }
+
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun PreviewCharactersScreen(){
     App_pmovilesTheme{
         Surface {
-            CharactersScreen(onNavigateCharacter = {})
+            CharactersScreen(
+                state = CharactersScreenState(),
+                onGenerateError = {},
+                onReloadData = {},
+                onNavigateCharacter = {})
         }
     }
 }

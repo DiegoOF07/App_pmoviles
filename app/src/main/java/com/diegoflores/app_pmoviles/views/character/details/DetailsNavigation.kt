@@ -22,10 +22,8 @@ fun NavController.toDetailsScreen(
 fun NavGraphBuilder.detailsScreen(
     onNavigateBack: () -> Unit
 ) {
-    composable<DetailsDestination> { navBackStackEntry ->
-        val destination: DetailsDestination = navBackStackEntry.toRoute()
+    composable<DetailsDestination> {
         DetailsRoute(
-            id = destination.characterId,
             onNavigateBack = onNavigateBack
         )
     }

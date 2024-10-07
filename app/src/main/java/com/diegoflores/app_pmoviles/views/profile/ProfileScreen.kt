@@ -90,7 +90,7 @@ private fun ProfileImage(size: Int){
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(size.dp)
-                .border(BorderStroke(4.dp, MaterialTheme.colorScheme.outline), CircleShape)
+                .border(BorderStroke(4.dp, MaterialTheme.colorScheme.primary), CircleShape)
                 .padding(4.dp)
                 .clip(CircleShape))
         Box(

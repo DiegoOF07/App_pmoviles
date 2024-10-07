@@ -1,7 +1,9 @@
 package com.diegoflores.app_pmoviles.views.location.location_detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -13,15 +15,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,30 +36,57 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.diegoflores.app_pmoviles.data.Location
 import com.diegoflores.app_pmoviles.data.LocationDb
 import com.diegoflores.app_pmoviles.ui.theme.App_pmovilesTheme
 
 @Composable
 fun LocationDetailsRoute(
-    id: Int,
+    viewModel: LocationDetailViewModel = viewModel(),
     onNavigateBack: ()->Unit
 ){
+    val state by viewModel.state.collectAsStateWithLifecycle()
     LocationDetailsScreen(
-        id = id,
+        state = state,
+        onGenerateError = {viewModel.simulateError()},
+        onReloadData = {viewModel.getLocationDetailsData()},
         onNavigateBack = onNavigateBack
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationDetailsScreen(
-    id: Int,
+    state: LocationDetailsScreenState,
+    onGenerateError: ()->Unit,
+    onReloadData: ()->Unit,
     onNavigateBack: ()-> Unit
 ){
-    val locationDb = LocationDb()
-    val locationSelected = locationDb.getLocationById(id)
+    when{
+        state.isLoading -> LoadingScreen(onGenerateError)
+        state.hasError -> ErrorScreen(onReloadData)
+        else -> state.data?.let {
+            LocationDetailsContent(
+                name = it.name,
+                id = state.data.id,
+                type = state.data.type,
+                dimension = state.data.dimension,
+                onNavigateBack)
+        }
+    }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LocationDetailsContent(
+    name: String,
+    id: Int,
+    type: String,
+    dimension: String,
+    onNavigateBack: () -> Unit
+){
     Column (
         modifier = Modifier
             .fillMaxSize()
@@ -85,7 +118,7 @@ private fun LocationDetailsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ){
 
-            Text(text = locationSelected.name,
+            Text(text = name,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
@@ -105,7 +138,7 @@ private fun LocationDetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(text = "ID: ")
-                    Text(text = "${locationSelected.id}")
+                    Text(text = "$id")
                 }
                 Row (
                     modifier = Modifier
@@ -113,7 +146,7 @@ private fun LocationDetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(text = "Type: ")
-                    Text(text = locationSelected.type)
+                    Text(text = type)
                 }
                 Row (
                     modifier = Modifier
@@ -121,11 +154,45 @@ private fun LocationDetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(text = "Dimensions: ")
-                    Text(text = locationSelected.dimension)
+                    Text(text = dimension)
                 }
             }
         }
 
+    }
+}
+
+@Composable
+private fun LoadingScreen(onGenerateError: ()->Unit){
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .clickable(onClick = onGenerateError),
+        contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorScreen(onReloadData: () -> Unit){
+    Box(modifier = Modifier
+        .fillMaxSize(),
+        contentAlignment = Alignment.Center){
+        Column(modifier = Modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Icon(Icons.Outlined.Info,
+                contentDescription =null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp))
+            Text(text = "Error al obtener la información de la localización\nIntenta de nuevo",
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+            OutlinedButton(onClick = onReloadData) {
+                Text(text = "Reintentar", color = MaterialTheme.colorScheme.error)
+            }
+
+        }
     }
 }
 
@@ -134,7 +201,12 @@ private fun LocationDetailsScreen(
 private fun PreviewLocationDetailsScreen(){
     App_pmovilesTheme{
         Surface {
-            LocationDetailsScreen(id = 1, onNavigateBack = {})
+            LocationDetailsScreen(
+                state = LocationDetailsScreenState(),
+                onGenerateError = {},
+                onReloadData = {},
+                onNavigateBack = {}
+            )
         }
     }
 }

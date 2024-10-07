@@ -2,7 +2,9 @@ package com.diegoflores.app_pmoviles.views.character.details
 
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,14 +16,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,30 +36,57 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.diegoflores.app_pmoviles.data.CharacterDb
 import com.diegoflores.app_pmoviles.ui.theme.App_pmovilesTheme
 
 @Composable
 fun DetailsRoute(
-    id: Int,
+    viewModel: DetailsViewModel = viewModel(),
     onNavigateBack: ()->Unit
 ){
+    val state by viewModel.state.collectAsStateWithLifecycle()
     DetailsScreen(
-        id = id,
+        state = state,
+        onGenerateError = {viewModel.simulateError()},
+        onReloadData = {viewModel.getCharacterDetailsData()},
         onNavigateBack = onNavigateBack
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DetailsScreen(
-    id: Int,
+    state: DetailsScreenState,
+    onGenerateError: () -> Unit,
+    onReloadData: () -> Unit,
     onNavigateBack: ()-> Unit
 ){
-    val characterDb = CharacterDb()
-    val character = characterDb.getCharacterById(id)
-
+    when{
+        state.isLoading-> LoadingScreen(onGenerateError)
+        state.hasError-> ErrorScreen(onReloadData)
+        else -> state.data?.let {
+            DetailsContent(
+                image = it.image,
+                name = state.data.name,
+                species = state.data.species,
+                status = state.data.status,
+                gender = state.data.gender,
+                onNavigateBack = onNavigateBack
+            )
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailsContent(
+    image: String,
+    name: String,
+    species:String,
+    status: String,
+    gender: String,
+    onNavigateBack: () -> Unit
+){
     Column (
         modifier = Modifier
             .fillMaxSize()
@@ -85,7 +118,7 @@ private fun DetailsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             AsyncImage(
-                model = character.image,
+                model = image,
                 contentDescription = null,
                 modifier = Modifier
                     .size(220.dp)
@@ -93,14 +126,15 @@ private fun DetailsScreen(
                     .background(MaterialTheme.colorScheme.primary),
                 contentScale = ContentScale.Crop
             )
-            Text(text = character.name,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(0.dp, 25.dp),
-                )
+
+            Text(text =name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(0.dp, 25.dp))
+
 
             Column (
                 modifier = Modifier
@@ -113,7 +147,7 @@ private fun DetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(text = "Species: ")
-                    Text(text = character.species)
+                    Text(text = species)
                 }
                 Row (
                     modifier = Modifier
@@ -121,7 +155,7 @@ private fun DetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(text = "Status ")
-                    Text(text = character.status)
+                    Text(text = status)
                 }
                 Row (
                     modifier = Modifier
@@ -129,11 +163,45 @@ private fun DetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(text = "Gender: ")
-                    Text(text = character.gender)
+                    Text(text = gender)
                 }
             }
         }
 
+    }
+}
+
+@Composable
+private fun LoadingScreen(onGenerateError: ()->Unit){
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .clickable(onClick = onGenerateError),
+        contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorScreen(onReloadData: () -> Unit){
+    Box(modifier = Modifier
+        .fillMaxSize(),
+        contentAlignment = Alignment.Center){
+        Column(modifier = Modifier,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Icon(Icons.Outlined.Info,
+                contentDescription =null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp))
+            Text(text = "Error al obtener información del personaje\nIntenta de nuevo",
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+            OutlinedButton(onClick = onReloadData) {
+                Text(text = "Reintentar", color = MaterialTheme.colorScheme.error)
+            }
+
+        }
     }
 }
 
@@ -142,7 +210,10 @@ private fun DetailsScreen(
 private fun PreviewDetailsScreen(){
     App_pmovilesTheme{
         Surface {
-            DetailsScreen(id = 1, onNavigateBack = {})
+            DetailsScreen(state = DetailsScreenState(),
+                onGenerateError = {},
+                onReloadData = {},
+                onNavigateBack = {})
         }
     }
 }
