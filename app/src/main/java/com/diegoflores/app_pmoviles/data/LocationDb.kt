@@ -1,4 +1,8 @@
-package com.diegoflores.app_pmoviles.data// import .....Location
+package com.diegoflores.app_pmoviles.data
+
+import com.diegoflores.app_pmoviles.domain.model.Location
+
+// import .....Location
 
 class LocationDb {
     private val locations: List<Location> = listOf(

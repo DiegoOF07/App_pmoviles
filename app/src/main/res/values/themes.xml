@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.App_pmoviles" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.App_pmoviles" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+    <style name="Theme.App_pmoviles.SplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#11a8cd</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_filled_location</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/background_light</item>
+        <item name="postSplashScreenTheme">@style/Theme.App_pmoviles</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>
