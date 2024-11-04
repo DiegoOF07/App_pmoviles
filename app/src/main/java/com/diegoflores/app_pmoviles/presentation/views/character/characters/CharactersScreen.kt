@@ -1,5 +1,6 @@
 package com.diegoflores.app_pmoviles.views.character.characters
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -39,7 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.diegoflores.app_pmoviles.domain.model.Character
 import com.diegoflores.app_pmoviles.ui.theme.App_pmovilesTheme
 
@@ -52,7 +54,12 @@ fun CharactersRoute(
     CharactersScreen (
         state = state,
         onGenerateError = {viewModel.simulateError()},
-        onReloadData = {viewModel.getCharactersData()},
+        onGetLocalData = {
+            viewModel.loadCharactersFromLocalDb()
+            viewModel.getCharactersFromRoom()},
+        onReloadData = {
+            viewModel.loadCharactersFromApi()
+            viewModel.getCharactersFromRoom()},
         onNavigateCharacter = onNavigateCharacter,
     )
 }
@@ -62,12 +69,13 @@ fun CharactersRoute(
 private fun CharactersScreen(
     state: CharactersScreenState,
     onGenerateError: () -> Unit,
+    onGetLocalData: () -> Unit,
     onReloadData: ()->Unit,
     onNavigateCharacter: (Int) -> Unit,
 ){
     when{
         state.isLoading-> LoadingScreen(onGenerateError)
-        state.hasError-> ErrorScreen(onReloadData)
+        state.hasError-> ErrorScreen(onGetLocalData =onGetLocalData, onReloadData =  onReloadData)
         state.data.isNotEmpty() -> CharacterListContent(characters = state.data, onNavigateCharacter = onNavigateCharacter)
     }
 }
@@ -143,7 +151,9 @@ private fun LoadingScreen(onGenerateError: ()->Unit){
 }
 
 @Composable
-private fun ErrorScreen(onReloadData: () -> Unit){
+private fun ErrorScreen(
+    onGetLocalData: () -> Unit,
+    onReloadData: () -> Unit){
     Box(modifier = Modifier
         .fillMaxSize(),
         contentAlignment = Alignment.Center){
@@ -158,8 +168,11 @@ private fun ErrorScreen(onReloadData: () -> Unit){
                 color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center
                 )
+            OutlinedButton(onClick = onGetLocalData) {
+                Text(text = "Cargar datos locales", color = MaterialTheme.colorScheme.error)
+            }
             OutlinedButton(onClick = onReloadData) {
-                Text(text = "Reintentar", color = MaterialTheme.colorScheme.error)
+                Text(text = "Reintentar de internet", color = MaterialTheme.colorScheme.error)
             }
 
         }
@@ -174,6 +187,7 @@ private fun PreviewCharactersScreen(){
             CharactersScreen(
                 state = CharactersScreenState(),
                 onGenerateError = {},
+                onGetLocalData = {},
                 onReloadData = {},
                 onNavigateCharacter = {})
         }

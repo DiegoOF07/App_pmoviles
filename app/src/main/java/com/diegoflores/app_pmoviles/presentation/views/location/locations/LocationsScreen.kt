@@ -48,7 +48,12 @@ fun LocationsRoute(
     LocationsScreen (
         state = state,
         onGenerateError = {viewModel.simulateError()},
-        onReloadData = {viewModel.getLocationsData()},
+        onGetLocalData = {
+            viewModel.loadLocationsFromLocalDb()
+            viewModel.getLocationsFromRoom()},
+        onReloadData = {
+            viewModel.loadLocationsFromApi()
+            viewModel.getLocationsFromRoom()},
         onNavigateLocation = onNavigateLocation,
     )
 }
@@ -57,12 +62,13 @@ fun LocationsRoute(
 private fun LocationsScreen(
     state: LocationsScreenState,
     onGenerateError: ()->Unit,
+    onGetLocalData: () -> Unit,
     onReloadData: ()->Unit,
     onNavigateLocation: (Int) -> Unit,
 ){
     when{
         state.isLoading-> LoadingScreen(onGenerateError)
-        state.hasError-> ErrorScreen(onReloadData)
+        state.hasError-> ErrorScreen(onGetLocalData,onReloadData)
         state.data.isNotEmpty()-> LocationsListContent(
             locations = state.data,
             onNavigateLocation)
@@ -129,7 +135,9 @@ private fun LoadingScreen(onGenerateError: ()->Unit){
 }
 
 @Composable
-private fun ErrorScreen(onReloadData: () -> Unit){
+private fun ErrorScreen(
+    onGetLocalData: ()->Unit,
+    onReloadData: () -> Unit){
     Box(modifier = Modifier
         .fillMaxSize(),
         contentAlignment = Alignment.Center){
@@ -145,8 +153,11 @@ private fun ErrorScreen(onReloadData: () -> Unit){
                 color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center
             )
+            OutlinedButton(onClick = onGetLocalData) {
+                Text(text = "Cargar datos locales", color = MaterialTheme.colorScheme.error)
+            }
             OutlinedButton(onClick = onReloadData) {
-                Text(text = "Reintentar", color = MaterialTheme.colorScheme.error)
+                Text(text = "Reintentar de internet", color = MaterialTheme.colorScheme.error)
             }
 
         }
@@ -162,6 +173,7 @@ private fun PreviewLocationsScreen(){
                 state = LocationsScreenState(),
                 onGenerateError = {},
                 onReloadData = {},
+                onGetLocalData = {},
                 onNavigateLocation = {})
         }
     }

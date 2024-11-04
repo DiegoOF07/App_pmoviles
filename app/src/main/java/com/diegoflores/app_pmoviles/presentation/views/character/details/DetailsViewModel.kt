@@ -13,6 +13,7 @@ import com.diegoflores.app_pmoviles.data.CharacterDb
 import com.diegoflores.app_pmoviles.data.repository.CharacterRepository
 import com.diegoflores.app_pmoviles.di.Dependencies
 import com.diegoflores.app_pmoviles.views.character.characters.CharactersViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ class DetailsViewModel (
     savedStateHandle: SavedStateHandle,
     private val characterRepository: CharacterRepository
 ): ViewModel(){
+    private var getDataJob: Job? = null
     private val character = savedStateHandle.toRoute<DetailsDestination>()
     private val _state = MutableStateFlow(DetailsScreenState())
     val state = _state.asStateFlow()
@@ -32,13 +34,11 @@ class DetailsViewModel (
     }
 
     fun getCharacterDetailsData(){
-        viewModelScope.launch {
+        getDataJob = viewModelScope.launch {
             _state.update { it.copy(
                 hasError = false,
                 isLoading = true
             ) }
-
-            delay(2000L)
             val characterDetails = characterRepository.getCharacterById(
                 character.characterId
             )
@@ -51,6 +51,7 @@ class DetailsViewModel (
     }
 
     fun simulateError(){
+        getDataJob?.cancel()
         _state.update { it.copy(
             hasError = true,
             isLoading = false
